@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Sederhana</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 30,
+      width: 50,
+      height: 50,
+      color: '#00F',
+      speed: 10
+    };
+
+    const obstacles = [];
+    const items = [];
+    const bullets = [];
+    let lives = 10; // 10 nyawa
+    let score = 0;
+
+    function drawPlayer() {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawObstacles() {
+      for (const obstacle of obstacles) {
+        ctx.fillStyle = obstacle.color;
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      }
+    }
+
+    function drawItems() {
+      for (const item of items) {
+        ctx.fillStyle = item.color;
+        ctx.fillRect(item.x, item.y, item.width, item.height);
+      }
+    }
+
+    function drawBullets() {
+      for (const bullet of bullets) {
+        ctx.fillStyle = bullet.color;
+        ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+      }
+    }
+
+    function updateObstacles() {
+      for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].y += 10;
+
+        if (obstacles[i].y > canvas.height) {
+          obstacles.splice(i, 1);
+          i--;
+          lives--;
+
+          if (lives === 0) {
+            alert('Game Over! Your Score: ' + score);
+            resetGame();
+          }
+        }
+      }
+
+      if (Math.random() < 0.02) {
+        const obstacle = {
+          x: Math.random() * (canvas.width - 30),
+          y: 0,
+          width: 30,
+          height: 30,
+          color: '#F00',
+          hitCount: 0
+        };
+        obstacles.push(obstacle);
+      }
+    }
+
+    function updateItems() {
+      for (let i = 0; i < items.length; i++) {
+        items[i].y += 10;
+
+        if (items[i].y > canvas.height) {
+          items.splice(i, 1);
+          i--;
+        }
+      }
+
+      if (Math.random() < 0.01) {
+        const item = {
+          x: Math.random() * (canvas.width - 30),
+          y: 0,
+          width: 30,
+          height: 30,
+          color: '#0F0'
+        };
+        items.push(item);
+      }
+    }
+
+    function updateBullets() {
+      for (let i = 0; i < bullets.length; i++) {
+        bullets[i].y -= 15;
+
+        for (let j = 0; j < obstacles.length; j++) {
+          if (
+            bullets[i].x < obstacles[j].x + obstacles[j].width &&
+            bullets[i].x + bullets[i].width > obstacles[j].x &&
+            bullets[i].y < obstacles[j].y + obstacles[j].height &&
+            bullets[i].y + bullets[i].height > obstacles[j].y
+          ) {
+            obstacles[j].hitCount++;
+
+            if (obstacles[j].hitCount === 4) {
+              obstacles.splice(j, 1);
+              score++;
+            }
+
+            bullets.splice(i, 1);
+            i--;
+            break;
+          }
+        }
+
+        if (bullets[i] && bullets[i].y < 0) {
+          bullets.splice(i, 1);
+          i--;
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawPlayer();
+      drawObstacles();
+      drawItems();
+      drawBullets();
+      updateObstacles();
+      updateItems();
+      updateBullets();
+
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#000';
+      ctx.fillText('Lives: ' + lives, 10, 30);
+      ctx.fillText('Score: ' + score, 10, 60);
+
+      requestAnimationFrame(draw);
+    }
+
+    function movePlayer(e) {
+      switch (e.key) {
+        case 'ArrowLeft':
+          player.x -= player.speed;
+          break;
+        case 'ArrowRight':
+          player.x += player.speed;
+          break;
+        case 'a': // Tambahan tombol 'a' untuk menembak
+          const bullet = {
+            x: player.x + player.width / 2 - 5,
+            y: player.y,
+            width: 10,
+            height: 10,
+            color: '#FF0'
+          };
+          bullets.push(bullet);
+          break;
+      }
+
+      if (player.x < 0) {
+        player.x = 0;
+      } else if (player.x + player.width > canvas.width) {
+        player.x = canvas.width - player.width;
+      }
+    }
+
+    function checkCollisions() {
+      for (const obstacle of obstacles) {
+        if (
+          player.x < obstacle.x + obstacle.width &&
+          player.x + player.width > obstacle.x &&
+          player.y < obstacle.y + obstacle.height &&
+          player.y + player.height > obstacle.y
+        ) {
+          lives--;
+          if (lives === 0) {
+            alert('Game Over! Your Score: ' + score);
+            resetGame();
+          }
+        }
+      }
+
+      for (const item of items) {
+        if (
+          player.x < item.x + item.width &&
+          player.x + player.width > item.x &&
+          player.y < item.y + item.height &&
+          player.y + player.height > item.y
+        ) {
+          score++;
+          items.splice(items.indexOf(item), 1);
+        }
+      }
+    }
+
+    function resetGame() {
+      lives = 10; // Reset nyawa
+      score = 0;
+      obstacles.length = 0;
+      items.length = 0;
+      bullets.length = 0;
+    }
+
+    document.addEventListener('keydown', movePlayer);
+
+    draw();
+    setInterval(checkCollisions, 10);
+  </script>
+</body>
+</html>
